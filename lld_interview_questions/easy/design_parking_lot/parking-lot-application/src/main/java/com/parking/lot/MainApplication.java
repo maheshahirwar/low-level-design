@@ -21,48 +21,34 @@ public class MainApplication {
 
 	public static void main(String[] args) {
 		System.out.println("========Welcome to the Parking Lot System!=============\n");
-
 		ParkingService parkingService = initializeParkingService();
-
-		// Parking Lot Demo
 		AllocationStrategy allocationStrategy = new AllocateNearestSpot(parkingService);
 		FeeStrategy feeStrategy = new FlatRateFeeStrategy();
 		ParkingLot parkingLot = new ParkingLot(parkingService, allocationStrategy, feeStrategy);
 
-		System.out.println("\nParking lot service initialized with allocation and fee strategies.\n");
-
-		System.out.println("parking vehicles...\n");
-		// parking vehicles
+		System.out.println("\nparking vehicles...\n");
 		Ticket ticket1 = parkingLot.parkVehicle(new Vehicle("KA-01-HH-1234", VehicleType.CAR));
 		Ticket ticket2 = parkingLot.parkVehicle(new Vehicle("KA-01-HH-9999", VehicleType.CAR));
 		Ticket ticket3 = parkingLot.parkVehicle(new Vehicle("KA-01-BB-0001", VehicleType.BIKE));
 		Ticket ticket4 = parkingLot.parkVehicle(new Vehicle("KA-01-HH-7777", VehicleType.TRUCK));
 		Ticket ticket5 = parkingLot.parkVehicle(new Vehicle("KA-01-HH-2701", VehicleType.BIKE));
 		Ticket ticket6 = parkingLot.parkVehicle(new Vehicle("KA-01-HH-3141", VehicleType.TRUCK));
-
 		try {
 			parkingLot.parkVehicle(new Vehicle("KA-01-HH-9999", VehicleType.CAR));
 		} catch (Exception e) {
 			System.out.println("Error while parking: " + e.getMessage());
 		}
 
-		System.out.println("Vehicles parked successfully. Tickets issued:\n");
-
 		System.out.println("Unparking vehicles...\n");
-
-		// unparking vehicles
 		parkingLot.unparkVehicle(ticket1.getTicketId());
 		parkingLot.unparkVehicle(ticket3.getTicketId());
-
 		try {
 			parkingLot.unparkVehicle("invalid-ticket-id");
 		} catch (Exception e) {
 			System.out.println("Error while unparking: " + e.getMessage());
 		}
 
-		System.out.println("Vehicles unparked successfully. Fees calculated and spots freed.\n");
-
-		System.out.println("========Thank you for using the Parking Lot System!=============");
+		System.out.println("\n========Thank you for using the Parking Lot System!=============");
 	}
 
 	private static ParkingService initializeParkingService() {
