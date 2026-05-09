@@ -47,7 +47,6 @@ public class MainApplication {
 		} catch (Exception e) {
 			System.out.println("Error while unparking: " + e.getMessage());
 		}
-
 		System.out.println("\n========Thank you for using the Parking Lot System!=============");
 	}
 
