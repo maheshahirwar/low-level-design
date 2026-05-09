@@ -8,6 +8,8 @@ target/
 .project
 .classpath
 .workspace.xml
+.gitignore
+.class
 
 # Misc
 /shelf/
