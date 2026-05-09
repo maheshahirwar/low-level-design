@@ -1,0 +1,10 @@
+package com.elevator.system;
+
+public class MainApplication {
+
+	public static void main(String[] args) {
+		System.out.println("Welcome to the Elevator System!");
+
+	}
+
+}
