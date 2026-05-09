@@ -12,6 +12,7 @@ target/
 .class
 
 # Misc
+bin/
 /shelf/
 /httpRequests/
 /queries/
