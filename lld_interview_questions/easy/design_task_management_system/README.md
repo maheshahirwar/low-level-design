@@ -10,7 +10,10 @@ The system supports:
 - Task priority management
 - Task comments
 - Task filtering and searching
-- In-memory data management
+- Task sorting using Strategy Pattern
+- Activity logging using Observer Pattern
+- Singleton-based centralized task manager
+- Thread-safe in-memory data management
 
 ---
 
@@ -27,6 +30,12 @@ The system supports:
   - Priority
   - Assignee
 - Search task by task ID
+- Sort tasks by:
+  - Status
+  - Priority
+  - Assignee
+- Activity logging using Observer Pattern
+- Singleton TaskManager instance
 - Professional console-based workflow
 - Custom exception handling
 - Thread-safe in-memory storage
@@ -47,14 +56,28 @@ src/main/java
     │   └── User.java
     │
     ├── enums
+    │   ├── SortBy.java
     │   ├── TaskPriority.java
     │   └── TaskStatus.java
     │
     ├── exceptions
     │   └── TaskNotFoundException.java
     │
-    └── service
-        └── TaskManager.java
+    ├── factory
+    │   └── TaskSortStrategyFactory.java
+    │
+    ├── observer
+    │   ├── ActivityLogger.java
+    │   └── TaskObserver.java
+    │
+    ├── service
+    │   └── TaskManager.java
+    │
+    └── strategies
+        ├── AssigneeTaskSortStrategy.java
+        ├── PriorityTaskSortStrategy.java
+        ├── StatusTaskSortStrategy.java
+        └── TaskSortStrategy.java
 ```
 
 ---
@@ -69,6 +92,8 @@ src/main/java
 - Support task comments
 - Support task filtering
 - Support task searching
+- Support task sorting
+- Support activity logging
 - Support concurrent-safe task storage
 - Easy extensibility for future enhancements
 
@@ -115,12 +140,14 @@ Represents a task in the system.
 - priority
 - assignee
 - comments
+- observers
 
 ### Responsibilities
 
 - Store task details
 - Maintain task state
 - Maintain comments and assignment details
+- Notify observers when task changes
 
 ---
 
@@ -191,6 +218,20 @@ HIGH
 
 ---
 
+## SortBy
+
+Represents supported task sorting criteria.
+
+### Supported Values
+
+```java
+STATUS
+PRIORITY
+ASSIGNEE
+```
+
+---
+
 # 4. Exception Layer
 
 Contains custom exceptions.
@@ -220,7 +261,7 @@ Main service class responsible for task and user management.
 Uses:
 - `ConcurrentHashMap`
 - `AtomicLong`
-- Java Collections Framework
+- Singleton Pattern
 
 ---
 
@@ -254,46 +295,146 @@ Uses:
 
 ---
 
-# Design Principles Used
+### Sorting Operations
+
+- Sort tasks by status
+- Sort tasks by priority
+- Sort tasks by assignee
 
 ---
 
-## Separation of Concerns
+# Design Patterns Used
+
+---
+
+# 1. Singleton Pattern
+
+Implemented in:
+
+```java
+TaskManager
+```
+
+### Purpose
+
+Ensures only one instance of `TaskManager` exists throughout the application.
+
+### Benefits
+
+- Centralized task management
+- Controlled access to shared resources
+- Better memory management
+
+### Implementation
+
+```java
+public synchronized static TaskManager getInstance() {
+    if(instance == null) {
+        instance = new TaskManager();
+    }
+    return instance;
+}
+```
+
+---
+
+# 2. Strategy Pattern
+
+Implemented for task sorting functionality.
+
+### Strategy Interface
+
+```java
+TaskSortStrategy
+```
+
+### Concrete Strategies
+
+- `StatusTaskSortStrategy`
+- `PriorityTaskSortStrategy`
+- `AssigneeTaskSortStrategy`
+
+### Factory
+
+```java
+TaskSortStrategyFactory
+```
+
+### Purpose
+
+Allows dynamic sorting behavior at runtime.
+
+### Benefits
+
+- Open for extension
+- Easy to add new sorting algorithms
+- Removes conditional complexity
+
+---
+
+# 3. Observer Pattern
+
+Implemented for activity logging.
+
+### Observer Interface
+
+```java
+TaskObserver
+```
+
+### Concrete Observer
+
+```java
+ActivityLogger
+```
+
+### Purpose
+
+Automatically logs task activities whenever task state changes.
+
+### Activities Logged
+
+- Task assignment
+- Task status update
+- Task priority update
+- Comment addition
+
+### Benefits
+
+- Loose coupling
+- Better extensibility
+- Event-driven notifications
+
+---
+
+# 4. Separation of Concerns
 
 Each class has a dedicated responsibility:
 
 - Entity classes represent domain models
 - Service layer contains business logic
+- Strategy layer handles sorting algorithms
+- Observer layer handles activity notifications
 - MainApplication handles user interaction
 
 ---
 
-## Single Responsibility Principle (SRP)
+# 5. Single Responsibility Principle (SRP)
 
 Every class focuses on one responsibility only.
 
 ### Examples
 
-- `Task` → task data
+- `Task` → task data and observer handling
 - `User` → user data
 - `Comment` → comment data
 - `TaskManager` → task operations
+- `ActivityLogger` → activity logging
+- `PriorityTaskSortStrategy` → priority-based sorting
 
 ---
 
-## Manager Pattern
-
-`TaskManager` acts as a centralized manager/service layer for all operations.
-
-### Benefits
-
-- Cleaner code organization
-- Better maintainability
-- Easy extensibility
-
----
-
-## Thread-Safe Collections
+# Thread-Safe Collections
 
 Uses:
 
@@ -326,8 +467,9 @@ Client -> MainApplication
 
 1. User enters task details
 2. TaskManager generates unique task ID
-3. Task stored in memory
-4. Success response displayed
+3. Observer gets attached to task
+4. Task stored in memory
+5. Success response displayed
 
 ---
 
@@ -336,32 +478,34 @@ Client -> MainApplication
 ```text
 Client -> MainApplication
        -> TaskManager
-       -> Task Updated
+       -> Observer Notification
 ```
 
 ### Steps
 
 1. User provides task ID
 2. User provides assignee email
-3. Task fetched and updated
-4. Assignment confirmation displayed
+3. Task gets updated
+4. Observer logs activity
+5. Success response displayed
 
 ---
 
-## Task Comment Flow
+## Task Sorting Flow
 
 ```text
 Client -> MainApplication
        -> TaskManager
-       -> Comment Added
+       -> Strategy Factory
+       -> Sorting Strategy
 ```
 
 ### Steps
 
-1. User selects task
-2. User enters comment
-3. Comment stored with timestamp
-4. Updated task displayed
+1. User selects sorting criteria
+2. Factory returns appropriate strategy
+3. Strategy sorts tasks
+4. Sorted tasks displayed
 
 ---
 
@@ -386,7 +530,8 @@ The application provides a professional console-based interface.
 10. Filter Tasks By Priority
 11. Filter Tasks By Assignee
 12. Search Task By ID
-13. Exit
+13. View Ordered Tasks
+14. Exit
 
 =====================================================
 ```
@@ -403,11 +548,18 @@ The application provides a professional console-based interface.
 
 ---
 
+## Get Singleton Instance
+
+```java
+TaskManager taskManager =
+        TaskManager.getInstance();
+```
+
+---
+
 ## Create Users
 
 ```java
-TaskManager taskManager = new TaskManager();
-
 User mahesh =
         taskManager.createUser(
                 "Mahesh",
@@ -486,34 +638,12 @@ taskManager.addCommentToTask(
 
 ---
 
-## Filter Tasks By Status
+## Sort Tasks
 
 ```java
-List<Task> tasks =
-        taskManager.getTasksByStatus(
-                TaskStatus.IN_PROGRESS
-        );
-```
-
----
-
-## Filter Tasks By Priority
-
-```java
-List<Task> tasks =
-        taskManager.getTasksByPriority(
-                TaskPriority.HIGH
-        );
-```
-
----
-
-## Filter Tasks By Assignee
-
-```java
-List<Task> tasks =
-        taskManager.getTasksByAssignee(
-                john
+List<Task> sortedTasks =
+        taskManager.getOrderedTasks(
+                SortBy.PRIORITY
         );
 ```
 
@@ -529,7 +659,8 @@ List<Task> tasks =
 6. Add comments
 7. Filter tasks
 8. Search tasks
-9. View all tasks
+9. Sort tasks
+10. View all tasks
 
 ---
 
@@ -541,6 +672,9 @@ List<Task> tasks =
 - ConcurrentHashMap
 - AtomicLong
 - Builder Pattern
+- Singleton Pattern
+- Strategy Pattern
+- Observer Pattern
 - Lombok
 
 ---
@@ -593,6 +727,7 @@ The system is designed for easy future enhancements.
 - Dashboard and analytics
 - Concurrent task updates
 - Email notifications
+- Real-time WebSocket updates
 
 ---
 
