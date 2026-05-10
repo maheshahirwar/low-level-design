@@ -9,20 +9,43 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.task.management.system.entities.Comment;
 import com.task.management.system.entities.Task;
 import com.task.management.system.entities.User;
+import com.task.management.system.enums.SortBy;
 import com.task.management.system.enums.TaskPriority;
 import com.task.management.system.enums.TaskStatus;
 import com.task.management.system.exceptions.TaskNotFoundException;
+import com.task.management.system.factory.TaskSortStrategyFactory;
+import com.task.management.system.observer.ActivityLogger;
+import com.task.management.system.strategies.TaskSortStrategy;
 
 public class TaskManager {
 
-	private Map<Long, Task> tasks = new ConcurrentHashMap<>();
+	private final Map<Long, Task> tasks;
 	
-	private Map<String, User> users = new ConcurrentHashMap<>();
+	private final Map<String, User> users;
 
-	AtomicLong taskIdGenerator = new AtomicLong(1);
+	private final AtomicLong taskIdGenerator;
+	
+	
+	// Singleton pattern implementation 
+	private static TaskManager instance;
+	
+	private TaskManager() {
+		 this.tasks = new ConcurrentHashMap<>();
+		 this.users = new ConcurrentHashMap<>();
+		 this.taskIdGenerator = new AtomicLong(1);
+	}
+	
+	public synchronized static TaskManager getInstance() {
+		if(instance == null) {
+			instance = new TaskManager();
+		}
+		return instance;
+	}
+	
 
 	public Task createTask(Task task) {
 		task.setTaskId(taskIdGenerator.getAndIncrement());
+		task.addObserver(new ActivityLogger());
 		tasks.computeIfAbsent(task.getTaskId(), id -> task);
 		return task;
 	}
@@ -50,6 +73,7 @@ public class TaskManager {
 			throw new TaskNotFoundException(taskId);
 		}
 		task.setAssignee(assignee);
+		task.notifyObservers("Task assigned to " + assignee.getName() + " successfully.");
 		tasks.put(taskId, task);
 		return "Task assigned to " + assignee.getName() + " successfully.";
 	}
@@ -60,6 +84,7 @@ public class TaskManager {
 			throw new TaskNotFoundException(taskId);
 		}
 		task.setStatus(newStatus);
+		task.notifyObservers("Task status updated to " + newStatus + " successfully.");
 		tasks.put(taskId, task);
 		return "Task status updated successfully.";
 	}
@@ -73,6 +98,7 @@ public class TaskManager {
 		comments = comments == null ? new ArrayList<>() : comments;
 		comments.add(comment);
 		task.setComments(comments);
+		task.notifyObservers("Comment added to task successfully.");
 		tasks.put(taskId, task);
 		return "Comment added to task successfully.";
 	}
@@ -84,6 +110,7 @@ public class TaskManager {
 		}
 		task.setPriority(newPriority);
 		tasks.put(taskId, task);
+		task.notifyObservers("Task priority updated to " + newPriority + " successfully.");
 		return "Task priority updated successfully.";
 	}
 
@@ -101,6 +128,13 @@ public class TaskManager {
 	public List<Task> getTasksByPriority(TaskPriority priority) {
 		return tasks.values().stream().filter(task -> task.getPriority() != null && task.getPriority().equals(priority))
 				.toList();
+	}
+	
+	public List<Task> getOrderedTasks(SortBy criteria) {
+		TaskSortStrategy strategy = TaskSortStrategyFactory.getStrategy(criteria);
+		List<Task> sortedTasks = new ArrayList<>(tasks.values());
+		strategy.sort(sortedTasks);
+		return sortedTasks;
 	}
 
 	public List<User> getAllUsers() {

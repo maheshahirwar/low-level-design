@@ -8,6 +8,7 @@ import java.util.Scanner;
 import com.task.management.system.entities.Comment;
 import com.task.management.system.entities.Task;
 import com.task.management.system.entities.User;
+import com.task.management.system.enums.SortBy;
 import com.task.management.system.enums.TaskPriority;
 import com.task.management.system.enums.TaskStatus;
 import com.task.management.system.exceptions.TaskNotFoundException;
@@ -37,13 +38,14 @@ public class MainApplication {
 				10. Filter Tasks By Priority
 				11. Filter Tasks By Assignee
 				12. Search Task By ID
-				13. Exit
+				13. View ordered tasks
+				14. Exit
 
 				=====================================================
 
 				""";
 
-		TaskManager taskManager = new TaskManager();
+		TaskManager taskManager = TaskManager.getInstance(); // Singleton instance of TaskManager
 
 		System.out.println(welcomeMessage);
 
@@ -51,7 +53,7 @@ public class MainApplication {
 
 			try {
 
-				System.out.print("Please select an option (1-13): ");
+				System.out.print("Please select an option (1-14): ");
 
 				int option = scanner.nextInt();
 				scanner.nextLine();
@@ -105,8 +107,12 @@ public class MainApplication {
 				case 12:
 					searchTaskById(taskManager, scanner);
 					break;
-
+					
 				case 13:
+					viewOrderedTasks(taskManager, scanner);
+					break;
+					
+				case 14:
 					System.out.println("""
 							
 							=========================================
@@ -132,6 +138,18 @@ public class MainApplication {
 				System.out.println(e.getMessage());
 			}
 		}
+	}
+
+	private static void viewOrderedTasks(TaskManager taskManager, Scanner scanner) {
+		
+		System.out.println("\n========== VIEW ORDERED TASKS ==========");
+
+		System.out.print("Enter sorting criteria (status, priority, assignee): ");
+		String criteria = scanner.nextLine();
+		SortBy sortBy = SortBy.valueOf(criteria.toUpperCase());
+		List<Task> tasks = taskManager.getOrderedTasks(sortBy);
+		
+		tasks.forEach(MainApplication::printTask);
 	}
 
 	private static void createNewTask(TaskManager taskManager, Scanner scanner) {
