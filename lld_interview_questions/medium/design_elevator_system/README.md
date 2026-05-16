@@ -7,27 +7,28 @@ The system simulates real-world elevator operations including:
 - External elevator requests
 - Internal floor selection
 - Multiple elevators running concurrently
-- Smart elevator scheduling
-- Elevator state transitions
-- Real-time elevator movement
+- Smart nearest elevator scheduling
+- Elevator state transitions using State Pattern
+- Real-time elevator movement simulation
 - Observer-based activity logging
-- Configurable floor limits
+- Configurable minimum and maximum floors
+- Concurrent request processing using multithreading
 
 ---
 
 # Features
 
-- Multiple elevators support
-- External hall requests
-- Internal elevator floor selection
-- Smart nearest elevator scheduling
-- Real-time elevator movement simulation
-- Elevator state management
-- Multithreading support
-- Observer-based activity logging
-- Configurable minimum and maximum floors
-- Thread-safe request processing
-- Console-based interactive workflow
+- Support for multiple elevators
+- External hall requests (UP/DOWN)
+- Internal floor selection inside elevator
+- Smart nearest elevator scheduling algorithm
+- Dynamic elevator state management
+- Real-time floor-by-floor movement simulation
+- Concurrent elevator execution using thread pool
+- Observer-based elevator activity logging
+- Thread-safe request handling
+- Configurable building floor range
+- Professional menu-driven console interface
 - Extensible and modular architecture
 
 ---
@@ -79,8 +80,8 @@ src/main/java
 - Support internal floor selection
 - Support concurrent request handling
 - Support elevator scheduling
-- Support elevator movement simulation
-- Support elevator state transitions
+- Support real-time elevator movement
+- Support state transitions
 - Support activity logging
 - Support configurable floor ranges
 - Easy extensibility for future enhancements
@@ -89,7 +90,7 @@ src/main/java
 
 # Architecture Overview
 
-The application follows a layered and modular design.
+The application follows a layered and modular Low-Level Design architecture.
 
 ---
 
@@ -97,7 +98,7 @@ The application follows a layered and modular design.
 
 ## MainApplication
 
-Acts as the client of the system.
+Acts as the client of the elevator system.
 
 ### Responsibilities
 
@@ -107,7 +108,7 @@ Acts as the client of the system.
 - Calling service layer methods
 - Displaying elevator statuses
 - Simulating concurrent requests
-- Handling exceptions gracefully
+- Graceful system shutdown
 
 ---
 
@@ -115,27 +116,48 @@ Acts as the client of the system.
 
 Contains all core domain models.
 
+---
+
 ## Elevator
 
-Represents an elevator in the system.
+Represents a single elevator running independently in the system.
 
 ### Fields
 
-- elevatorId
+- id
 - currentFloor
-- currentDirection
-- currentState
-- pendingRequests
+- elevatorState
+- isRunning
+- upRequests
+- downRequests
 - observers
+- minFloor
+- maxFloor
 
 ### Responsibilities
 
-- Maintain elevator state
-- Process floor requests
-- Simulate elevator movement
-- Notify observers on activities
-- Manage internal request queue
-- Handle state transitions
+- Maintain elevator current state
+- Process upward and downward requests
+- Simulate real-time movement
+- Notify observers during activities
+- Maintain separate request queues
+- Run independently using Runnable interface
+
+### Request Handling Strategy
+
+The elevator maintains:
+
+```java
+TreeSet<Integer> upRequests;
+TreeSet<Integer> downRequests;
+```
+
+### Benefits
+
+- Automatically sorted requests
+- Efficient request processing
+- Optimized elevator movement
+- Reduced unnecessary floor traversal
 
 ---
 
@@ -151,16 +173,18 @@ Represents elevator requests.
 
 ### Responsibilities
 
-- Store requested floor details
+- Store requested floor
 - Maintain request direction
-- Track request source
-- Represent internal and external requests
+- Identify request source
+- Represent internal/external requests
 
 ---
 
 # 3. Enum Layer
 
 Contains application constants.
+
+---
 
 ## Direction
 
@@ -178,7 +202,7 @@ IDLE
 
 ## ElevatorStateType
 
-Represents elevator operational state.
+Represents current elevator state.
 
 ### Supported Values
 
@@ -205,17 +229,19 @@ INTERNAL
 
 # 4. Repository Layer
 
-Responsible for elevator storage and retrieval.
+Responsible for elevator persistence and retrieval.
+
+---
 
 ## ElevatorRepository
 
-Defines elevator persistence operations.
+Defines elevator storage operations.
 
 ### Responsibilities
 
-- Store elevators
+- Save elevators
 - Fetch elevators
-- Update elevator details
+- Retrieve all elevators
 
 ---
 
@@ -226,58 +252,79 @@ Thread-safe in-memory implementation of `ElevatorRepository`.
 ### Uses
 
 ```java
-ConcurrentHashMap
+ConcurrentHashMap<Integer, Elevator>
 ```
 
 ### Benefits
 
-- Fast access
+- Fast lookup
 - Concurrent-safe operations
 - Easy testing
-- No external database dependency
+- No database dependency
 
 ---
 
 # 5. Service Layer
 
-Contains complete business logic.
+Contains the complete business logic.
 
-## ElevatorService
+---
+
+# ElevatorService
 
 Main service class responsible for:
 
-- Elevator request handling
+- Elevator initialization
 - Elevator scheduling
-- Elevator movement simulation
-- Elevator status management
+- Elevator request processing
+- Thread management
+- Elevator lifecycle management
 
-### Responsibilities
+---
 
-#### Request Operations
+## Internal Components
+
+```java
+private final ElevatorRepository elevatorRepository;
+private final ElevatorScheduler elevatorScheduler;
+private ExecutorService executorService;
+```
+
+---
+
+## Responsibilities
+
+### Request Operations
 
 - Request elevator externally
 - Select floor inside elevator
-- Assign requests to elevators
-- Process pending requests
+- Assign requests to nearest elevator
+- Validate floor ranges
 
-#### Elevator Operations
+---
+
+### Elevator Operations
 
 - Start elevator threads
-- Stop elevators
-- Display elevator status
+- Stop elevator system
+- View elevator status
 - Simulate concurrent requests
 
-#### Scheduling Operations
+---
 
-- Find nearest elevator
-- Optimize request allocation
+### Scheduling Operations
+
+- Select nearest available elevator
 - Reduce waiting time
+- Optimize request allocation
 
 ---
 
 # Design Patterns Used
 
-## 1. Strategy Pattern
+---
+
+# 1. Strategy Pattern
 
 Implemented for elevator scheduling.
 
@@ -301,13 +348,13 @@ Allows dynamic elevator scheduling algorithms.
 
 - Open for extension
 - Easy to add new scheduling algorithms
-- Removes scheduling complexity from service layer
+- Cleaner business logic
 
 ---
 
-## 2. State Pattern
+# 2. State Pattern
 
-Implemented for elevator behavior management.
+Implemented for elevator state transitions.
 
 ### State Interface
 
@@ -323,17 +370,17 @@ ElevatorState
 
 ### Purpose
 
-Encapsulates elevator behavior based on current state.
+Encapsulates elevator behavior based on its current state.
 
 ### Benefits
 
-- Cleaner state transitions
+- Cleaner state management
 - Better maintainability
-- Removes large conditional logic
+- Removes complex conditional logic
 
 ---
 
-## 3. Observer Pattern
+# 3. Observer Pattern
 
 Implemented for activity logging.
 
@@ -349,29 +396,25 @@ ElevatorObserver
 ElevatorActivityLogger
 ```
 
-### Purpose
-
-Automatically logs elevator activities whenever state changes occur.
-
 ### Activities Logged
 
 - Elevator movement
-- Request assignment
 - Floor arrival
-- State transitions
+- Request assignment
+- Direction changes
 - Idle waiting status
 
 ### Benefits
 
 - Loose coupling
-- Event-driven architecture
+- Event-driven notifications
 - Better extensibility
 
 ---
 
-## 4. Repository Pattern
+# 4. Repository Pattern
 
-Implemented for data management.
+Implemented for elevator data management.
 
 ### Repository Interface
 
@@ -392,8 +435,48 @@ Separates persistence logic from business logic.
 ### Benefits
 
 - Cleaner architecture
-- Easier future database integration
-- Improved testability
+- Easier testing
+- Future database integration support
+
+---
+
+# 5. Singleton Pattern
+
+Implemented in:
+
+```java
+ElevatorService
+```
+
+### Purpose
+
+Ensures only one elevator system instance exists.
+
+### Benefits
+
+- Centralized elevator management
+- Shared resource control
+- Prevents duplicate system initialization
+
+### Implementation
+
+```java
+public static synchronized ElevatorService getInstance(
+        int numElevators,
+        int minFloor,
+        int maxFloor
+) {
+    if(instance == null) {
+        instance = new ElevatorService(
+                numElevators,
+                minFloor,
+                maxFloor
+        );
+    }
+
+    return instance;
+}
+```
 
 ---
 
@@ -403,29 +486,31 @@ Uses:
 
 ```java
 ConcurrentHashMap
-BlockingQueue
 ExecutorService
+AtomicInteger
+volatile boolean
+TreeSet
 ```
 
 ### Benefits
 
-- Safe concurrent operations
-- Parallel elevator execution
+- Safe concurrent execution
+- Multiple elevators running independently
+- Optimized request processing
 - Better scalability
-- Real-time request handling
 
 ---
 
-# Console Workflow
+# Elevator Execution Flow
 
-## External Elevator Request Flow
+## External Request Flow
 
 ```text
 Client -> MainApplication
        -> ElevatorService
        -> ElevatorScheduler
-       -> Selected Elevator
-       -> Elevator Processes Request
+       -> Nearest Elevator
+       -> Elevator Request Queue
 ```
 
 ### Steps
@@ -434,8 +519,8 @@ Client -> MainApplication
 2. User selects direction
 3. Scheduler selects nearest elevator
 4. Request assigned to elevator
-5. Elevator starts movement
-6. Observer logs activity
+5. Elevator processes request
+6. Observer logs activities
 
 ---
 
@@ -444,16 +529,29 @@ Client -> MainApplication
 ```text
 Client -> MainApplication
        -> ElevatorService
-       -> Elevator Request Queue
+       -> Elevator
+       -> Request Queue
 ```
 
 ### Steps
 
 1. User selects elevator ID
 2. User enters destination floor
-3. Request added to queue
+3. Floor added to request queue
 4. Elevator processes request
 5. Elevator reaches destination
+
+---
+
+## Elevator State Transition Flow
+
+```text
+IdleState
+    ↓
+MovingUpState / MovingDownState
+    ↓
+IdleState
+```
 
 ---
 
@@ -472,13 +570,6 @@ Client -> MainApplication
 
 =====================================================
 ```
-
----
-
-# UML Class Diagram
-
-![](../../../../uml-diagrams/class-diagrams/elevatorsystem-class-diagram.png)
-
 ---
 
 # Low-Level Design Diagram
@@ -532,8 +623,8 @@ IdleState   MovingStates
 ## Initialize Elevator System
 
 ```java
-ElevatorSystemConfig config =
-        new ElevatorSystemConfig(
+ElevatorService elevatorService =
+        ElevatorService.getInstance(
                 4,
                 -2,
                 15
@@ -593,16 +684,18 @@ Enter maximum floor: 15
 
 =====================================================
 
-Select an option (1-5):
+[ELEVATOR-0]: Waiting for requests...
+[ELEVATOR-1]: Waiting for requests...
+[ELEVATOR-2]: Waiting for requests...
+[ELEVATOR-3]: Waiting for requests...
 
 Received request at floor 3 to go UP
 
 [ELEVATOR-0]:
-Received request: Request(targetFloor=3,
+Received request:
+Request(targetFloor=3,
 direction=UP,
 source=EXTERNAL)
-
-Elevator moving from floor 0 to floor 3...
 ```
 
 ---
@@ -613,13 +706,14 @@ Elevator moving from floor 0 to floor 3...
 - Object-Oriented Programming
 - Java Collections Framework
 - ConcurrentHashMap
-- BlockingQueue
 - ExecutorService
+- AtomicInteger
 - Multithreading
 - Strategy Pattern
 - State Pattern
 - Observer Pattern
 - Repository Pattern
+- Singleton Pattern
 - Lombok
 
 ---
